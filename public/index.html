@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload with Progress Bar and Drag & Drop</title>
+  <link rel="stylesheet" href="/style.css"> 
+</head>
+<body>
+  <div class="container">
+    <h1>File Upload</h1>
+    <div class="form-wrapper">
+      <div id="dropArea" class="drop-area">
+        <img src="public/logo.png" alt="File Drive" class="drive-icon">
+        <p>Drag & Drop files here or</p>
+        <input type="file" name="file" id="fileInput">
+        <button id="uploadButton">Upload</button>
+      </div>
+    </div>
+    <div id="progressBar">
+      <div id="progressBarFill"></div>
+    </div>
+    <div id="uploadedFiles">
+      <h2>Uploaded Files:</h2>
+      <ul id="fileList"></ul>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      function handleFileUpload(files) {
+        const formData = new FormData();
+        formData.append("file", files[0]);
+
+        const progressBar = $('#progressBar');
+        const progressBarFill = $('#progressBarFill');
+
+        progressBar.show();
+
+        $.ajax({
+          url: '/upload',
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          xhr: function() {
+            const xhr = new window.XMLHttpRequest();
+            if (xhr.upload) {
+              xhr.upload.addEventListener('progress', function(event) {
+                if (event.lengthComputable) {
+                  const percentage = (event.loaded / event.total) * 100;
+                  progressBarFill.width(percentage + '%');
+                }
+              }, false);
+            }
+            return xhr;
+          },
+          success: function(response) {
+            progressBar.hide();
+            progressBarFill.width('0%');
+            alert(response);
+
+
+            const fileList = $('#fileList');
+            const fileName = files[0].name;
+            fileList.append(`<li>${fileName}</li>`);
+          },
+          error: function(error) {
+            progressBar.hide();
+            progressBarFill.width('0%');
+            alert('An error occurred during upload: ' + error.responseText);
+          }
+        });
+      }
+
+
+      $('#fileInput').on('change', function() {
+        handleFileUpload(this.files);
+      });
+
+
+      const dropArea = document.getElementById('dropArea');
+      dropArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropArea.classList.add('drag-over');
+      });
+
+      dropArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dropArea.classList.remove('drag-over');
+      });
+
+      dropArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropArea.classList.remove('drag-over');
+        handleFileUpload(e.dataTransfer.files);
+      });
+
+      $('#uploadButton').on('click', function() {
+        const fileInput = $('#fileInput')[0];
+        handleFileUpload(fileInput.files);
+      });
+    });
+  </script>
+</body>
+</html>
